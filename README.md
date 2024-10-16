@@ -2,14 +2,18 @@
 
 ## Overview
 
-OptiDech3 is a Flask-based web application designed for IoT waste management. This application helps in monitoring and managing waste collection using IoT devices.
+OptiDech3 is a Flask-based web application designed for IoT waste management for the city of Troyes, France. This application helps in monitoring and managing waste collection using IoT devices.
+
+This application was created for educational and demonstration purposes, the bin filling readings are currently simulated.
+
+However, all contributions are welcome.
 
 ## Features
 
 - Real-time waste level monitoring
 - Alerts and notifications for waste collection
 - Data visualization and analytics
-- User authentication and role management
+- Optimal visualization of waste collection routes
 
 ## Installation
 
