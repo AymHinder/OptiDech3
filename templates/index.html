@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OptiDech3</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <header>
+        <img src="{{ url_for('static', filename='Logo_Ville_Troyes.svg.png') }}" alt="Logo de la Ville de Troyes" style="height: 60px;">
+        <h1 class="center_title">Optimisation des trajets de collecte des déchets de la ville de Troyes</h1>
+    </header>
+
+    <form id="routingForm">
+        <label for="num_camions">Nombre de camions en collecte :</label>
+        <input type="number" id="num_camions" name="num_camions" required min="1" max="6" value="2">
+        <label for="camion_id">Numéro du camion :</label>
+        <select id="camion_id" name="camion_id"></select>
+        <button type="submit">Calculer la route optimisée</button>
+    </form>
+    
+    <div id="map" style="height: 400px;"></div>
+    <div id="results"></div>
+
+    <script>
+        $(document).ready(function() {
+            var map = L.map('map').setView([48.2963, 4.0738], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            function updateCamionOptions() {
+                var numCamions = $('#num_camions').val();
+                $('#camion_id').empty();
+                for (let i = 0; i < numCamions; i++) {
+                    $('#camion_id').append($('<option>', {
+                        value: i,
+                        text: 'Camion ' + i
+                    }));
+                }
+            }
+
+            $('#num_camions').change(updateCamionOptions);
+
+            $('#routingForm').on('submit', function(e) {
+                e.preventDefault();
+                var formData = $(this).serialize();
+
+                $.post('/calculate', formData, function(data) {
+                    map.eachLayer(function(layer) {
+                        if (!layer._url) map.removeLayer(layer);
+                    });
+
+                    var camion_id = parseInt($('#camion_id').val());
+                    if (data.Routes && data.Routes.length > camion_id) {
+                        var route = data.Routes[camion_id];
+                        var polyline = L.polyline(route.coordinates, {color: 'red'}).addTo(map);
+                        map.fitBounds(polyline.getBounds());
+
+                        $('#results').html('');
+                        var routeDetails = $('<div/>', {
+                            'class': 'route-details',
+                            'html': `<strong>Distance totale :</strong> ${route.total_distance.toFixed(2)} km | <strong>Nombre de PAV à vider :</strong> ${route.num_stops}`
+                        });
+                        $('#results').append(routeDetails);
+
+                        var routeInstructions = $('<div/>', {
+                            'class': 'route-instructions',
+                            'html': '<strong>Instructions de route:</strong>'
+                        });
+
+                        var instructionsList = $('<ul/>');
+                        route.instructions.forEach(function(instruction) {
+                            instructionsList.append($('<li/>', {
+                                'text': instruction
+                            }));
+                        });
+
+                        routeInstructions.append(instructionsList);
+                        $('#results').append(routeInstructions);
+                    } else {
+                        $('#results').html('<p>Aucune route disponible pour le camion sélectionné.</p>');
+                    }
+                }).fail(function(error) {
+                    console.error("Error: ", error);
+                    $('#results').html('<p>Erreur lors de la récupération des données.</p>');
+                });
+            });
+
+            updateCamionOptions(); // Initialiser les options de camion à l'initialisation
+        });
+    </script>
+</body>
+</html>
